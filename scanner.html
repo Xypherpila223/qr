@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>QR Code Scanner</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/zxing-js-library/0.18.6/index.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        h2 {
+            margin-top: 20px;
+        }
+        video {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            border: 2px solid black;
+            margin-top: 10px;
+        }
+        #scanner-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 80vh;
+            flex-direction: column;
+        }
+        #loading {
+            font-size: 18px;
+            color: red;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h2>Scan the QR Code</h2>
+    <div id="scanner-container">
+        <video id="preview" autoplay playsinline></video>
+        <p id="loading">Loading camera...</p>
+    </div>
+
+    <script>
+        const video = document.getElementById('preview');
+        const codeReader = new ZXing.BrowserQRCodeReader();
+
+        document.getElementById('loading').style.display = 'block';
+
+        // Check if HTTPS is enabled
+        if (window.location.protocol !== "https:") {
+            alert("Please use HTTPS. Camera access will not work on HTTP.");
+            return;
+        }
+
+        // Get video input devices (cameras)
+        codeReader.getVideoInputDevices().then(videoInputDevices => {
+            if (videoInputDevices.length > 0) {
+                let backCamera = videoInputDevices.find(device => device.label.toLowerCase().includes('back')) || videoInputDevices[0];
+
+                // Start scanning from the back camera (if available)
+                codeReader.decodeFromVideoDevice(backCamera.deviceId, 'preview', (result, err) => {
+                    if (result) {
+                        window.location.href = "scan_qr.php?data=" + encodeURIComponent(result.text); // Redirect to scan_qr.php with scanned QR data
+                    } else if (err) {
+                        console.error(err);
+                    }
+                });
+
+                document.getElementById('loading').style.display = 'none'; // Hide loading message when camera is ready
+            } else {
+                alert("No camera found. Please allow camera access.");
+            }
+        }).catch(err => {
+            console.error(err);
+            alert("Error accessing the camera. Please check permissions.");
+        });
+    </script>
+</body>
+</html>
