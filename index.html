@@ -12,28 +12,52 @@
             margin: 0;
             padding: 0;
             background-color: #f4f4f4;
+            overflow-x: hidden;
         }
         h2 {
             margin-top: 20px;
+            font-size: 24px;
         }
         video {
             width: 100%;
-            max-width: 400px;
+            max-width: 100%;
             height: auto;
-            border: 2px solid black;
-            margin-top: 10px;
+            background-color: #000;
         }
         #scanner-container {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 80vh;
             flex-direction: column;
+            height: 100vh;
+            padding: 10px;
         }
         #loading {
             font-size: 18px;
             color: red;
             display: none;
+        }
+        #switch-camera {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        #switch-camera:active {
+            background-color: #0056b3;
+        }
+        /* Ensures better mobile responsiveness */
+        @media (max-width: 600px) {
+            h2 {
+                font-size: 20px;
+            }
+            video {
+                max-width: 95%;
+            }
         }
     </style>
 </head>
@@ -42,28 +66,51 @@
     <div id="scanner-container">
         <video id="preview"></video>
         <p id="loading">Loading camera...</p>
+        <button id="switch-camera">Switch Camera</button>
     </div>
 
     <script>
-        let scanner = new Instascan.Scanner({ video: document.getElementById('preview'), mirror: false });
-
-        scanner.addListener('scan', function (data) {
-            window.location.href = data; // Redirects to scan_qr.php with session ID
+        let scanner = new Instascan.Scanner({
+            video: document.getElementById('preview'),
+            mirror: false
         });
 
-        document.getElementById('loading').style.display = 'block'; // Show loading message
+        // Store the available cameras and current camera index
+        let availableCameras = [];
+        let currentCameraIndex = 0;
 
-        Instascan.Camera.getCameras().then(function (cameras) {
-            if (cameras.length > 0) {
-                let backCamera = cameras.find(camera => camera.name.toLowerCase().includes('back'));
-                scanner.start(backCamera || cameras[0]); // Use back camera if available
-                document.getElementById('loading').style.display = 'none'; // Hide loading message
-            } else {
-                alert('No camera found. Please allow camera access.');
+        // This listens for successful scans and redirects to the scanned data URL
+        scanner.addListener('scan', function (data) {
+            window.location.href = data; // Redirects to scan_qr.php with session ID or scanned URL
+        });
+
+        // Display loading message while waiting for camera access
+        document.getElementById('loading').style.display = 'block'; 
+
+        // Wait for user interaction before starting camera
+        document.getElementById('scanner-container').addEventListener('click', function() {
+            // Get available cameras and start the scanner with the preferred camera
+            Instascan.Camera.getCameras().then(function (cameras) {
+                if (cameras.length > 0) {
+                    availableCameras = cameras;
+                    scanner.start(availableCameras[currentCameraIndex]); // Start with the first camera (back or front)
+                    document.getElementById('loading').style.display = 'none'; // Hide loading message once camera starts
+                } else {
+                    alert('No camera found. Please allow camera access.');
+                }
+            }).catch(function (e) {
+                console.error(e);
+                alert('Error accessing camera. Please allow permissions.');
+            });
+        });
+
+        // Switch camera functionality
+        document.getElementById('switch-camera').addEventListener('click', function () {
+            if (availableCameras.length > 1) {
+                // Toggle between front and back cameras
+                currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
+                scanner.start(availableCameras[currentCameraIndex]);
             }
-        }).catch(function (e) {
-            console.error(e);
-            alert('Error accessing camera. Please allow permissions.');
         });
     </script>
 </body>
