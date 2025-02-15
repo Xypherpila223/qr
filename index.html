@@ -3,22 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code Generator & Scanner</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <title>QR Code Scanner</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
-            margin: 20px;
-            background-color: #111;
+            background-color: #000;
             color: white;
+            margin: 0;
+            padding: 0;
         }
         .scanner-container {
             position: relative;
-            width: 80%;
+            width: 90%;
             max-width: 400px;
-            margin: 0 auto;
+            margin: 20px auto;
             border: 3px solid rgba(0, 240, 255, 0.7);
             overflow: hidden;
             border-radius: 10px;
@@ -46,9 +46,9 @@
             display: none;
         }
         button {
-            margin-top: 10px;
-            padding: 10px 20px;
-            font-size: 16px;
+            margin-top: 15px;
+            padding: 12px 20px;
+            font-size: 18px;
             cursor: pointer;
             border: none;
             background: #00f0ff;
@@ -62,20 +62,8 @@
     </style>
 </head>
 <body>
-    <h2>QR Code Generator & Scanner</h2>
+    <h2>QR Code Scanner</h2>
 
-    <!-- QR Generator -->
-    <div>
-        <h3>Generate QR Code</h3>
-        <input type="text" id="qr-input" placeholder="Enter text or URL">
-        <button onclick="generateQR()">Generate</button>
-        <div id="qr-output"></div>
-    </div>
-
-    <hr>
-
-    <!-- QR Scanner -->
-    <h3>Scan QR Code</h3>
     <div class="scanner-container">
         <video id="video" autoplay playsinline></video>
         <div id="scan-line"></div>
@@ -90,20 +78,6 @@
         let context = canvas.getContext('2d');
         let scanning = false;
         let stream = null;
-
-        function generateQR() {
-            let qrText = document.getElementById("qr-input").value;
-            if (!qrText.trim()) {
-                alert("Enter text to generate QR Code.");
-                return;
-            }
-            document.getElementById("qr-output").innerHTML = "";
-            new QRCode(document.getElementById("qr-output"), {
-                text: qrText,
-                width: 200,
-                height: 200
-            });
-        }
 
         async function startScanner() {
             try {
@@ -135,9 +109,9 @@
                 
                 alert("✅ Scan Successful: " + scannedText);
 
-                // Open URL in a new tab if it's a valid link
+                // Auto open URL if it's a valid link
                 if (scannedText.startsWith("http://") || scannedText.startsWith("https://")) {
-                    window.open(scannedText, "_blank");
+                    window.location.href = scannedText;
                 }
 
                 stopScanner();
