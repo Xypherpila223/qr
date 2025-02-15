@@ -12,44 +12,10 @@
             text-align: center;
             margin: 20px;
         }
-        .dropdown {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-        }
-        .dropdown button {
-            padding: 10px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            right: 0;
-            background: white;
-            border: 1px solid #ccc;
-            min-width: 150px;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
-        }
-        .dropdown-content a {
-            display: block;
-            padding: 10px;
-            text-decoration: none;
-            color: black;
-        }
-        .dropdown-content a:hover {
-            background: #f0f0f0;
-        }
-        .dropdown:hover .dropdown-content {
-            display: block;
-        }
         video {
             width: 80%;
             max-width: 600px;
             border: 2px solid black;
-        }
-        #qr-output {
-            margin-top: 15px;
         }
         button {
             margin-top: 10px;
@@ -60,15 +26,6 @@
     </style>
 </head>
 <body>
-    <!-- Dropdown Menu -->
-    <div class="dropdown">
-        <button>Menu ▼</button>
-        <div class="dropdown-content">
-            <a href="#">QR Scanner</a>
-            <a href="#">QR Generator</a>
-        </div>
-    </div>
-
     <h2>QR Code Generator & Scanner</h2>
 
     <!-- QR Generator -->
@@ -105,16 +62,38 @@
             });
         }
 
+        async function checkCameraPermission() {
+            try {
+                let permission = await navigator.permissions.query({ name: "camera" });
+                if (permission.state === "granted" || permission.state === "prompt") {
+                    console.log("Camera permission granted, starting scanner...");
+                    startScanner();
+                } else {
+                    alert("Camera permission is denied. Please allow camera access in your settings.");
+                }
+            } catch (error) {
+                console.error("Permission check failed:", error);
+                alert("Error checking camera permissions.");
+            }
+        }
+
         async function startScanner() {
             try {
-                // Check camera permissions
+                // Stop existing scanner if running
+                if (scanner) {
+                    scanner.stop();
+                }
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+
+                // Request camera access
                 stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                document.getElementById("scan-result").textContent = "Camera access granted. Initializing...";
 
                 let videoElement = document.getElementById('preview');
                 videoElement.srcObject = stream;
 
-                // Start Instascan
+                // Initialize Instascan
                 scanner = new Instascan.Scanner({ video: videoElement });
                 scanner.addListener('scan', function (data) {
                     document.getElementById('scan-result').textContent = "Scan Successful: " + data;
@@ -123,31 +102,22 @@
 
                 let cameras = await Instascan.Camera.getCameras();
                 if (cameras.length > 0) {
-                    scanner.start(cameras[0]); // Use the first camera
+                    scanner.start(cameras[0]); // Start scanning
                 } else {
                     alert("No cameras found.");
-                    document.getElementById("scan-result").textContent = "No camera found.";
                 }
             } catch (error) {
                 console.error("Camera access denied:", error);
-                document.getElementById("scan-result").textContent = "Camera permission denied.";
-                alert("Please allow camera access to scan QR codes.");
+                alert("Please allow camera access in browser settings.");
             }
         }
 
-        // Restart scanner
         document.getElementById('restart-scanner').addEventListener('click', function () {
-            if (scanner) {
-                scanner.stop();
-            }
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
-            startScanner();
+            checkCameraPermission();
         });
 
-        // Start scanning automatically
-        startScanner();
+        // Automatically check permission & start scanner
+        checkCameraPermission();
     </script>
 </body>
 </html>
