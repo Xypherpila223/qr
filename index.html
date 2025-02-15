@@ -5,27 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Code Generator & Scanner</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
             margin: 20px;
         }
-        video {
+        #qr-output {
+            margin-top: 15px;
+        }
+        video, canvas {
             width: 80%;
             max-width: 600px;
             border: 2px solid black;
+            margin-top: 10px;
         }
         button {
             margin-top: 10px;
             padding: 10px;
             font-size: 16px;
             cursor: pointer;
-        }
-        #reader {
-            width: 300px;
-            margin: auto;
         }
     </style>
 </head>
@@ -44,12 +44,16 @@
 
     <!-- QR Scanner -->
     <h3>Scan QR Code</h3>
-    <div id="reader"></div>
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
     <p id="scan-result">Waiting for scan...</p>
     <button id="restart-scanner">Restart Scanner</button>
 
     <script>
-        let qrScanner;
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let context = canvas.getContext('2d');
+        let scanning = false;
 
         function generateQR() {
             let qrText = document.getElementById("qr-input").value;
@@ -65,28 +69,52 @@
             });
         }
 
-        function startScanner() {
-            if (qrScanner) {
-                qrScanner.stop();
+        async function startScanner() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                video.srcObject = stream;
+                video.setAttribute("playsinline", true);
+                scanning = true;
+                requestAnimationFrame(scanQR);
+            } catch (error) {
+                console.error("Camera access denied:", error);
+                document.getElementById("scan-result").textContent = "Camera permission denied.";
+                alert("Please allow camera access.");
             }
+        }
 
-            qrScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-            qrScanner.render(
-                (decodedText) => {
-                    document.getElementById('scan-result').textContent = "Scan Successful: " + decodedText;
-                    alert("✅ Scan Successful: " + decodedText);
-                },
-                (errorMessage) => {
-                    console.warn("QR Scan Error:", errorMessage);
-                }
-            );
+        function scanQR() {
+            if (!scanning) return;
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            let code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+
+            if (code) {
+                scanning = false;
+                document.getElementById('scan-result').textContent = "Scan Successful: " + code.data;
+                alert("✅ Scan Successful: " + code.data);
+                stopScanner(); // Stops the camera
+            } else {
+                requestAnimationFrame(scanQR);
+            }
+        }
+
+        function stopScanner() {
+            let stream = video.srcObject;
+            if (stream) {
+                let tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+            }
         }
 
         document.getElementById('restart-scanner').addEventListener('click', function () {
+            scanning = true;
             startScanner();
         });
 
-        // Automatically start scanner on page load
         startScanner();
     </script>
 </body>
