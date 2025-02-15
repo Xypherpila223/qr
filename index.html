@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code Scanner & Generator</title>
+    <title>QR Code Scanner</title>
     <script src="https://cdn.jsdelivr.net/npm/@zxing/library@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
@@ -58,26 +58,11 @@
         button:hover {
             background: #0088aa;
         }
-        input {
-            padding: 10px;
-            width: 80%;
-            font-size: 16px;
-        }
     </style>
 </head>
 <body>
-    <h2>QR Code Scanner & Generator</h2>
+    <h2>QR Code Scanner</h2>
 
-    <div>
-        <h3>Generate QR Code</h3>
-        <input type="text" id="qr-input" placeholder="Enter text">
-        <button onclick="generateQR()">Generate</button>
-        <div id="qr-output"></div>
-    </div>
-
-    <hr>
-
-    <h3>Scan QR Code</h3>
     <div class="scanner-container">
         <video id="video" autoplay playsinline></video>
         <div id="scan-line"></div>
@@ -89,18 +74,23 @@
         let video = document.getElementById('video');
         let scanResult = document.getElementById('scan-result');
         let scanning = true;
+        let codeReader;
 
         async function startScanner() {
-            const codeReader = new ZXing.BrowserMultiFormatReader();
+            codeReader = new ZXing.BrowserMultiFormatReader();
+
             try {
+                // Get all available cameras
                 const devices = await codeReader.getVideoInputDevices();
+
                 if (devices.length === 0) {
                     alert("No camera found.");
                     return;
                 }
-                const firstDeviceId = devices[0].deviceId;
 
-                await codeReader.decodeFromVideoDevice(firstDeviceId, 'video', (result, err) => {
+                const selectedDeviceId = devices[0].deviceId; // Use first available camera
+
+                await codeReader.decodeFromVideoDevice(selectedDeviceId, 'video', (result, err) => {
                     if (result) {
                         scanning = false;
                         scanResult.textContent = "✅ Scan Successful: " + result.text;
@@ -117,23 +107,10 @@
                 });
 
             } catch (error) {
-                console.error("Error starting scanner:", error);
+                console.error("Error accessing camera:", error);
                 scanResult.textContent = "Error accessing camera.";
+                alert("❌ Camera access error. Please allow camera permissions.");
             }
-        }
-
-        function generateQR() {
-            let qrText = document.getElementById("qr-input").value;
-            if (!qrText.trim()) {
-                alert("Enter text to generate QR Code.");
-                return;
-            }
-            document.getElementById("qr-output").innerHTML = "";
-            new QRCode(document.getElementById("qr-output"), {
-                text: qrText,
-                width: 200,
-                height: 200
-            });
         }
 
         document.getElementById('restart-scanner').addEventListener('click', function () {
