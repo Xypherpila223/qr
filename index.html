@@ -3,16 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code Scanner</title>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+    <title>QR Code Scanner & Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
             background-color: #000;
             color: white;
-            margin: 0;
-            padding: 0;
         }
         .scanner-container {
             position: relative;
@@ -59,77 +58,87 @@
         button:hover {
             background: #0088aa;
         }
+        input {
+            padding: 10px;
+            width: 80%;
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
-    <h2>QR Code Scanner</h2>
+    <h2>QR Code Scanner & Generator</h2>
 
+    <div>
+        <h3>Generate QR Code</h3>
+        <input type="text" id="qr-input" placeholder="Enter text">
+        <button onclick="generateQR()">Generate</button>
+        <div id="qr-output"></div>
+    </div>
+
+    <hr>
+
+    <h3>Scan QR Code</h3>
     <div class="scanner-container">
         <video id="video" autoplay playsinline></video>
         <div id="scan-line"></div>
     </div>
-    <canvas id="canvas"></canvas>
     <p id="scan-result">Waiting for scan...</p>
     <button id="restart-scanner">Restart Scanner</button>
 
     <script>
         let video = document.getElementById('video');
-        let canvas = document.getElementById('canvas');
-        let context = canvas.getContext('2d');
-        let scanning = false;
-        let stream = null;
+        let scanResult = document.getElementById('scan-result');
+        let scanning = true;
 
         async function startScanner() {
+            const codeReader = new ZXing.BrowserMultiFormatReader();
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                video.srcObject = stream;
-                scanning = true;
-                scanQR();
-            } catch (error) {
-                console.error("Camera access denied:", error);
-                document.getElementById("scan-result").textContent = "Camera permission denied.";
-                alert("Please allow camera access.");
-            }
-        }
-
-        function scanQR() {
-            if (!scanning) return;
-
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-            let code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
-
-            if (code) {
-                scanning = false;
-                let scannedText = code.data;
-                document.getElementById('scan-result').textContent = "Scan Successful: " + scannedText;
-                
-                alert("✅ Scan Successful: " + scannedText);
-
-                // Auto open URL if it's a valid link
-                if (scannedText.startsWith("http://") || scannedText.startsWith("https://")) {
-                    window.location.href = scannedText;
+                const devices = await codeReader.getVideoInputDevices();
+                if (devices.length === 0) {
+                    alert("No camera found.");
+                    return;
                 }
+                const firstDeviceId = devices[0].deviceId;
 
-                stopScanner();
-            } else {
-                requestAnimationFrame(scanQR);
+                await codeReader.decodeFromVideoDevice(firstDeviceId, 'video', (result, err) => {
+                    if (result) {
+                        scanning = false;
+                        scanResult.textContent = "✅ Scan Successful: " + result.text;
+
+                        alert("✅ Scan Successful: " + result.text);
+
+                        // If it's a URL, open it automatically
+                        if (result.text.startsWith("http://") || result.text.startsWith("https://")) {
+                            window.location.href = result.text;
+                        }
+
+                        codeReader.reset();  // Stop scanning after success
+                    }
+                });
+
+            } catch (error) {
+                console.error("Error starting scanner:", error);
+                scanResult.textContent = "Error accessing camera.";
             }
         }
 
-        function stopScanner() {
-            scanning = false;
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                stream = null;
+        function generateQR() {
+            let qrText = document.getElementById("qr-input").value;
+            if (!qrText.trim()) {
+                alert("Enter text to generate QR Code.");
+                return;
             }
+            document.getElementById("qr-output").innerHTML = "";
+            new QRCode(document.getElementById("qr-output"), {
+                text: qrText,
+                width: 200,
+                height: 200
+            });
         }
 
         document.getElementById('restart-scanner').addEventListener('click', function () {
             if (!scanning) {
+                scanning = true;
                 startScanner();
             }
         });
