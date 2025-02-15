@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Code Generator & Scanner</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/instascan/1.0.0/instascan.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -22,6 +22,10 @@
             padding: 10px;
             font-size: 16px;
             cursor: pointer;
+        }
+        #reader {
+            width: 300px;
+            margin: auto;
         }
     </style>
 </head>
@@ -40,13 +44,12 @@
 
     <!-- QR Scanner -->
     <h3>Scan QR Code</h3>
-    <video id="preview"></video>
+    <div id="reader"></div>
     <p id="scan-result">Waiting for scan...</p>
     <button id="restart-scanner">Restart Scanner</button>
 
     <script>
-        let scanner;
-        let stream;
+        let qrScanner;
 
         function generateQR() {
             let qrText = document.getElementById("qr-input").value;
@@ -62,62 +65,29 @@
             });
         }
 
-        async function checkCameraPermission() {
-            try {
-                let permission = await navigator.permissions.query({ name: "camera" });
-                if (permission.state === "granted" || permission.state === "prompt") {
-                    console.log("Camera permission granted, starting scanner...");
-                    startScanner();
-                } else {
-                    alert("Camera permission is denied. Please allow camera access in your settings.");
-                }
-            } catch (error) {
-                console.error("Permission check failed:", error);
-                alert("Error checking camera permissions.");
+        function startScanner() {
+            if (qrScanner) {
+                qrScanner.stop();
             }
-        }
 
-        async function startScanner() {
-            try {
-                // Stop existing scanner if running
-                if (scanner) {
-                    scanner.stop();
+            qrScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+            qrScanner.render(
+                (decodedText) => {
+                    document.getElementById('scan-result').textContent = "Scan Successful: " + decodedText;
+                    alert("✅ Scan Successful: " + decodedText);
+                },
+                (errorMessage) => {
+                    console.warn("QR Scan Error:", errorMessage);
                 }
-                if (stream) {
-                    stream.getTracks().forEach(track => track.stop());
-                }
-
-                // Request camera access
-                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-
-                let videoElement = document.getElementById('preview');
-                videoElement.srcObject = stream;
-
-                // Initialize Instascan
-                scanner = new Instascan.Scanner({ video: videoElement });
-                scanner.addListener('scan', function (data) {
-                    document.getElementById('scan-result').textContent = "Scan Successful: " + data;
-                    alert("✅ Scan Successful: " + data);
-                });
-
-                let cameras = await Instascan.Camera.getCameras();
-                if (cameras.length > 0) {
-                    scanner.start(cameras[0]); // Start scanning
-                } else {
-                    alert("No cameras found.");
-                }
-            } catch (error) {
-                console.error("Camera access denied:", error);
-                alert("Please allow camera access in browser settings.");
-            }
+            );
         }
 
         document.getElementById('restart-scanner').addEventListener('click', function () {
-            checkCameraPermission();
+            startScanner();
         });
 
-        // Automatically check permission & start scanner
-        checkCameraPermission();
+        // Automatically start scanner on page load
+        startScanner();
     </script>
 </body>
 </html>
