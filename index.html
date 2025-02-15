@@ -31,7 +31,7 @@
 </head>
 <body>
     <h2>Scan the QR Code to Mark Attendance</h2>
-    <p>Initializing camera in 3 seconds...</p>
+    <p id="status-message">Requesting camera access...</p>
     <video id="preview"></video>
     <p id="scan-result">Waiting for scan...</p>
     <button id="restart-scanner">Restart Scanner</button>
@@ -39,6 +39,37 @@
     <script>
         let scanner = new Instascan.Scanner({ video: document.getElementById('preview') });
 
+        // Function to start scanner
+        function startScanner() {
+            Instascan.Camera.getCameras().then(function (cameras) {
+                if (cameras.length > 0) {
+                    scanner.start(cameras[0]); // Start scanning
+                    document.getElementById("status-message").textContent = "Camera Ready. Scan a QR Code.";
+                } else {
+                    alert('No cameras found.');
+                    document.getElementById("status-message").textContent = "No camera found.";
+                }
+            }).catch(function (e) {
+                console.error(e);
+                document.getElementById("status-message").textContent = "Error accessing camera.";
+            });
+        }
+
+        // Function to request camera permission before scanning
+        function requestCameraPermission() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function (stream) {
+                    document.getElementById("status-message").textContent = "Camera access granted. Initializing...";
+                    setTimeout(startScanner, 3000); // Start scanner after 3 sec
+                })
+                .catch(function (error) {
+                    console.error("Camera permission denied:", error);
+                    document.getElementById("status-message").textContent = "Camera permission denied.";
+                    alert("Please allow camera access to scan QR codes.");
+                });
+        }
+
+        // Listen for QR scan event
         scanner.addListener('scan', function (data) {
             document.getElementById('scan-result').textContent = "Scan Successful: " + data;
             setTimeout(() => {
@@ -46,26 +77,12 @@
             }, 1000);
         });
 
-        function startScanner() {
-            setTimeout(() => { // Delay camera start by 3 seconds
-                Instascan.Camera.getCameras().then(function (cameras) {
-                    if (cameras.length > 0) {
-                        scanner.start(cameras[0]); // Start scanning
-                    } else {
-                        alert('No cameras found.');
-                    }
-                }).catch(function (e) {
-                    console.error(e);
-                });
-            }, 3000); // 3 seconds delay
-        }
-
-        // Start scanner after delay on page load
-        startScanner();
+        // Automatically request permission and start scanner
+        requestCameraPermission();
 
         // Restart scanner when button is clicked
         document.getElementById('restart-scanner').addEventListener('click', function () {
-            startScanner();
+            requestCameraPermission();
         });
     </script>
 </body>
