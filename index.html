@@ -67,7 +67,7 @@
     <!-- QR Generator -->
     <div>
         <h3>Generate QR Code</h3>
-        <input type="text" id="qr-input" placeholder="Enter text">
+        <input type="text" id="qr-input" placeholder="Enter text or URL">
         <button onclick="generateQR()">Generate</button>
         <div id="qr-output"></div>
     </div>
@@ -130,8 +130,16 @@
 
             if (code) {
                 scanning = false;
-                document.getElementById('scan-result').textContent = "Scan Successful: " + code.data;
-                alert("✅ Scan Successful: " + code.data);
+                let scannedText = code.data;
+                document.getElementById('scan-result').textContent = "Scan Successful: " + scannedText;
+                
+                alert("✅ Scan Successful: " + scannedText);
+
+                // Open URL in a new tab if it's a valid link
+                if (scannedText.startsWith("http://") || scannedText.startsWith("https://")) {
+                    window.open(scannedText, "_blank");
+                }
+
                 stopScanner();
             } else {
                 requestAnimationFrame(scanQR);
