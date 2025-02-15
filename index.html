@@ -2,73 +2,33 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>QR Code Scanner</title>
-    
-    <!-- ✅ Instascan Library (Corrected CDN) -->
-    <script src="https://cdn.jsdelivr.net/npm/instascan@1.0.0/instascan.min.js"></script>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-        }
-        h2 {
-            margin-top: 20px;
-        }
-        video {
-            width: 100%;
-            max-width: 400px;
-            height: auto;
-            border: 2px solid black;
-            margin-top: 10px;
-        }
-        #scanner-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            height: 80vh;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Attendance System</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/instascan/1.0.0/instascan.min.js"></script>
 </head>
 <body>
-    <h2>Scan the QR Code</h2>
-    <div id="scanner-container">
-        <video id="preview" autoplay playsinline></video>
+
+    <h2>QR Attendance System</h2>
+
+    <!-- QR Scanner Section -->
+    <div id="scanner">
+        <video id="video" width="300" height="300" autoplay></video>
+        <p id="scan-result">Waiting for scan...</p>
+        <button id="scan-btn">Restart Scanner</button>
     </div>
 
-    <script>
-        // ✅ Initialize Instascan
-        let scanner = new Instascan.Scanner({ video: document.getElementById('preview'), mirror: false });
+    <!-- QR Code Generator Section -->
+    <div id="qr-generator">
+        <label for="teacher-options">Select Option:</label>
+        <select id="teacher-options">
+            <option value="class1">Class 1</option>
+            <option value="class2">Class 2</option>
+            <option value="class3">Class 3</option>
+        </select>
+        <button id="generate-qr">Generate QR</button>
+    </div>
 
-        scanner.addListener('scan', function (data) {
-            // ✅ For Testing: Show Alert on Successful Scan
-            if (data === "SCAN_SUCCESS") {
-                alert("✅ Scan Successful!");
-            } else {
-                alert("❌ Invalid QR Code: " + data);
-            }
-
-            // ✅ Redirect to scan_qr.php (Remove this during testing)
-            window.location.href = "scan_qr.php?data=" + encodeURIComponent(data);
-        });
-
-        // ✅ Access Camera
-        Instascan.Camera.getCameras().then(function (cameras) {
-            if (cameras.length > 0) {
-                let backCamera = cameras.find(camera => camera.name.toLowerCase().includes('back')) || cameras[0];
-                scanner.start(backCamera);
-            } else {
-                alert('No camera found. Please allow camera access.');
-            }
-        }).catch(function (e) {
-            console.error(e);
-            alert('Error accessing camera. Please check permissions.');
-        });
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
