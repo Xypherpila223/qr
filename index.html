@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code Scanner</title>
+    <title>QR Code Scanner with Google Lens</title>
     <script src="https://cdn.jsdelivr.net/npm/@zxing/library@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
@@ -28,21 +28,8 @@
             display: block;
             border-radius: 10px;
         }
-        #scan-line {
-            position: absolute;
-            width: 100%;
-            height: 2px;
-            background: rgba(0, 240, 255, 1);
-            box-shadow: 0 0 12px rgba(0, 240, 255, 0.9), 0 0 24px rgba(0, 240, 255, 0.8);
-            top: 0;
-            animation: scanMove 2s infinite alternate ease-in-out;
-        }
-        @keyframes scanMove {
-            0% { top: 10%; }
-            100% { top: 90%; }
-        }
-        canvas {
-            display: none;
+        #qr-output {
+            margin-top: 15px;
         }
         button {
             margin-top: 15px;
@@ -61,11 +48,23 @@
     </style>
 </head>
 <body>
-    <h2>QR Code Scanner</h2>
+    <h2>QR Code Scanner with Google Lens</h2>
 
+    <!-- QR Generator -->
+    <div>
+        <h3>Generate QR Code</h3>
+        <input type="text" id="qr-input" placeholder="Enter text">
+        <button onclick="generateQR()">Generate</button>
+        <div id="qr-output"></div>
+    </div>
+
+    <hr>
+
+    <!-- QR Scanner -->
+    <h3>Scan QR Code</h3>
+    <button id="open-google-lens">📷 Open Google Lens (Mobile)</button>
     <div class="scanner-container">
         <video id="video" autoplay playsinline></video>
-        <div id="scan-line"></div>
     </div>
     <p id="scan-result">Waiting for scan...</p>
     <button id="restart-scanner">Restart Scanner</button>
@@ -73,39 +72,58 @@
     <script>
         let video = document.getElementById('video');
         let scanResult = document.getElementById('scan-result');
-        let scanning = true;
         let codeReader;
 
+        // ✅ QR Code Generator
+        function generateQR() {
+            let qrText = document.getElementById("qr-input").value;
+            if (!qrText.trim()) {
+                alert("Enter text to generate QR Code.");
+                return;
+            }
+            document.getElementById("qr-output").innerHTML = "";
+            new QRCode(document.getElementById("qr-output"), {
+                text: qrText,
+                width: 200,
+                height: 200
+            });
+        }
+
+        // ✅ Open Google Lens for Mobile Users
+        document.getElementById('open-google-lens').addEventListener('click', function () {
+            if (/Android|iPhone|iPad/i.test(navigator.userAgent)) {
+                window.location.href = "intent://scan/#Intent;scheme=googleapp;package=com.google.android.googlequicksearchbox;end;";
+            } else {
+                alert("Google Lens is only available on mobile devices.");
+            }
+        });
+
+        // ✅ Start QR Scanner (Desktop Fallback)
         async function startScanner() {
+            if (/Android|iPhone|iPad/i.test(navigator.userAgent)) {
+                alert("Use Google Lens for scanning QR codes on mobile.");
+                return;
+            }
+
             codeReader = new ZXing.BrowserMultiFormatReader();
-
             try {
-                // Get all available cameras
                 const devices = await codeReader.getVideoInputDevices();
-
                 if (devices.length === 0) {
                     alert("No camera found.");
                     return;
                 }
 
-                const selectedDeviceId = devices[0].deviceId; // Use first available camera
-
+                const selectedDeviceId = devices[0].deviceId;
                 await codeReader.decodeFromVideoDevice(selectedDeviceId, 'video', (result, err) => {
                     if (result) {
-                        scanning = false;
                         scanResult.textContent = "✅ Scan Successful: " + result.text;
-
                         alert("✅ Scan Successful: " + result.text);
-
-                        // If it's a URL, open it automatically
                         if (result.text.startsWith("http://") || result.text.startsWith("https://")) {
                             window.location.href = result.text;
                         }
-
-                        codeReader.reset();  // Stop scanning after success
+                        codeReader.reset();
                     }
                 });
-
             } catch (error) {
                 console.error("Error accessing camera:", error);
                 scanResult.textContent = "Error accessing camera.";
@@ -114,12 +132,10 @@
         }
 
         document.getElementById('restart-scanner').addEventListener('click', function () {
-            if (!scanning) {
-                scanning = true;
-                startScanner();
-            }
+            startScanner();
         });
 
+        // ✅ Start scanning on desktop
         startScanner();
     </script>
 </body>
