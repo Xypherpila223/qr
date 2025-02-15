@@ -15,11 +15,14 @@
         #qr-output {
             margin-top: 15px;
         }
-        video, canvas {
+        video {
             width: 80%;
             max-width: 600px;
             border: 2px solid black;
             margin-top: 10px;
+        }
+        canvas {
+            display: none;
         }
         button {
             margin-top: 10px;
@@ -45,7 +48,7 @@
     <!-- QR Scanner -->
     <h3>Scan QR Code</h3>
     <video id="video" autoplay playsinline></video>
-    <canvas id="canvas" style="display:none;"></canvas>
+    <canvas id="canvas"></canvas>
     <p id="scan-result">Waiting for scan...</p>
     <button id="restart-scanner">Restart Scanner</button>
 
@@ -55,6 +58,7 @@
         let context = canvas.getContext('2d');
         let scanning = false;
         let scanTimeout;
+        let stream = null;
 
         function generateQR() {
             let qrText = document.getElementById("qr-input").value;
@@ -72,11 +76,10 @@
 
         async function startScanner() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
                 video.srcObject = stream;
-                video.setAttribute("playsinline", true);
                 scanning = true;
-                scanTimeout = setTimeout(() => stopScanner(), 3000); // Stop after 3 seconds
+                scanTimeout = setTimeout(stopScanner, 3000); // Stop after 3 seconds
                 requestAnimationFrame(scanQR);
             } catch (error) {
                 console.error("Camera access denied:", error);
@@ -87,6 +90,7 @@
 
         function scanQR() {
             if (!scanning) return;
+
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -107,16 +111,16 @@
 
         function stopScanner() {
             scanning = false;
-            let stream = video.srcObject;
             if (stream) {
-                let tracks = stream.getTracks();
-                tracks.forEach(track => track.stop());
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
             }
         }
 
         document.getElementById('restart-scanner').addEventListener('click', function () {
-            scanning = true;
-            startScanner();
+            if (!scanning) {
+                startScanner();
+            }
         });
 
         startScanner();
