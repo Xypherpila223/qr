@@ -3,26 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code Scanner</title>
+    <title>QR Code Scanner & Generator</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
             margin: 20px;
+            position: relative;
         }
-        video {
+        .menu {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: white;
+            min-width: 150px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            text-align: left;
+        }
+        .dropdown-content a {
+            display: block;
+            padding: 10px;
+            text-decoration: none;
+            color: black;
+        }
+        .dropdown-content a:hover {
+            background-color: lightgray;
+        }
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+        video, #qr-generator {
             width: 80%;
             max-width: 600px;
             border: 2px solid black;
+            margin-top: 10px;
+        }
+        #qr-generator {
+            display: none;
         }
         canvas {
             display: none;
-        }
-        #scan-result {
-            font-size: 18px;
-            font-weight: bold;
-            margin-top: 10px;
         }
         button {
             margin-top: 15px;
@@ -33,18 +65,40 @@
     </style>
 </head>
 <body>
-    <h2>Scan the QR Code to Mark Attendance</h2>
+    <!-- Dropdown Menu -->
+    <div class="menu">
+        <div class="dropdown">
+            <button>☰ Menu</button>
+            <div class="dropdown-content">
+                <a href="#" onclick="showScanner()">📷 QR Scanner</a>
+                <a href="#" onclick="showGenerator()">🔲 QR Generator</a>
+            </div>
+        </div>
+    </div>
+
+    <h2 id="title">Scan the QR Code to Mark Attendance</h2>
     <p id="status-message">Requesting camera access...</p>
+
+    <!-- QR Scanner -->
     <video id="video" autoplay playsinline></video>
     <canvas id="canvas"></canvas>
     <p id="scan-result">Waiting for scan...</p>
     <button id="restart-scanner">Restart Scanner</button>
+
+    <!-- QR Generator -->
+    <div id="qr-generator">
+        <h2>Generate a QR Code</h2>
+        <input type="text" id="qr-input" placeholder="Enter text or URL" />
+        <button onclick="generateQR()">Generate QR</button>
+        <div id="qr-output"></div>
+    </div>
 
     <script>
         let video = document.getElementById('video');
         let canvas = document.getElementById('canvas');
         let context = canvas.getContext('2d');
         let scanning = false;
+        let qrGenerator = document.getElementById("qr-generator");
 
         async function startScanner() {
             try {
@@ -74,7 +128,7 @@
                 scanning = false;
                 document.getElementById('scan-result').textContent = "Scan Successful: " + code.data;
                 setTimeout(() => {
-                    window.location.href = code.data; // Redirects to scan_qr.php with session ID
+                    window.location.href = code.data;
                 }, 1000);
             } else {
                 requestAnimationFrame(scanQR);
@@ -86,7 +140,40 @@
             startScanner();
         });
 
-        startScanner();
+        function showScanner() {
+            document.getElementById("title").textContent = "Scan the QR Code to Mark Attendance";
+            document.getElementById("status-message").style.display = "block";
+            video.style.display = "block";
+            document.getElementById("scan-result").style.display = "block";
+            document.getElementById("restart-scanner").style.display = "block";
+            qrGenerator.style.display = "none";
+            startScanner();
+        }
+
+        function showGenerator() {
+            document.getElementById("title").textContent = "Generate a QR Code";
+            document.getElementById("status-message").style.display = "none";
+            video.style.display = "none";
+            document.getElementById("scan-result").style.display = "none";
+            document.getElementById("restart-scanner").style.display = "none";
+            qrGenerator.style.display = "block";
+        }
+
+        function generateQR() {
+            let qrText = document.getElementById("qr-input").value;
+            if (qrText.trim() === "") {
+                alert("Enter text or URL to generate a QR Code.");
+                return;
+            }
+            document.getElementById("qr-output").innerHTML = "";
+            new QRCode(document.getElementById("qr-output"), {
+                text: qrText,
+                width: 200,
+                height: 200
+            });
+        }
+
+        startScanner(); // Start scanner automatically on page load
     </script>
 </body>
 </html>
