@@ -45,7 +45,7 @@
     <!-- QR Scanner -->
     <h3>Scan QR Code</h3>
     <video id="video" autoplay playsinline></video>
-    <canvas id="canvas"></canvas>
+    <canvas id="canvas" style="display:none;"></canvas>
     <p id="scan-result">Waiting for scan...</p>
     <button id="restart-scanner">Restart Scanner</button>
 
@@ -54,6 +54,7 @@
         let canvas = document.getElementById('canvas');
         let context = canvas.getContext('2d');
         let scanning = false;
+        let scanTimeout;
 
         function generateQR() {
             let qrText = document.getElementById("qr-input").value;
@@ -75,6 +76,7 @@
                 video.srcObject = stream;
                 video.setAttribute("playsinline", true);
                 scanning = true;
+                scanTimeout = setTimeout(() => stopScanner(), 3000); // Stop after 3 seconds
                 requestAnimationFrame(scanQR);
             } catch (error) {
                 console.error("Camera access denied:", error);
@@ -94,15 +96,17 @@
 
             if (code) {
                 scanning = false;
+                clearTimeout(scanTimeout);
                 document.getElementById('scan-result').textContent = "Scan Successful: " + code.data;
                 alert("✅ Scan Successful: " + code.data);
-                stopScanner(); // Stops the camera
+                stopScanner();
             } else {
                 requestAnimationFrame(scanQR);
             }
         }
 
         function stopScanner() {
+            scanning = false;
             let stream = video.srcObject;
             if (stream) {
                 let tracks = stream.getTracks();
