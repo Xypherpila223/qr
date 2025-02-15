@@ -5,21 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Code Generator & Scanner</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/instascan/1.0.0/instascan.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
             margin: 20px;
         }
-        #qr-output {
-            margin-top: 15px;
-        }
-        video, canvas {
+        video {
             width: 80%;
             max-width: 600px;
             border: 2px solid black;
-            margin-top: 10px;
+        }
+        #qr-output {
+            margin-top: 15px;
         }
         button {
             margin-top: 10px;
@@ -44,16 +43,12 @@
 
     <!-- QR Scanner -->
     <h3>Scan QR Code</h3>
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas"></canvas>
+    <video id="preview"></video>
     <p id="scan-result">Waiting for scan...</p>
     <button id="restart-scanner">Restart Scanner</button>
 
     <script>
-        let video = document.getElementById('video');
-        let canvas = document.getElementById('canvas');
-        let context = canvas.getContext('2d');
-        let scanning = false;
+        let scanner = new Instascan.Scanner({ video: document.getElementById('preview') });
 
         function generateQR() {
             let qrText = document.getElementById("qr-input").value;
@@ -69,43 +64,48 @@
             });
         }
 
-        async function startScanner() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                video.srcObject = stream;
-                video.setAttribute("playsinline", true);
-                scanning = true;
-                requestAnimationFrame(scanQR);
-            } catch (error) {
-                console.error("Camera access denied:", error);
-                document.getElementById("scan-result").textContent = "Camera permission denied.";
-                alert("Please allow camera access.");
-            }
+        function startScanner() {
+            Instascan.Camera.getCameras().then(function (cameras) {
+                if (cameras.length > 0) {
+                    scanner.start(cameras[0]); // Start scanning
+                    document.getElementById("scan-result").textContent = "Scanning...";
+                } else {
+                    alert('No cameras found.');
+                    document.getElementById("scan-result").textContent = "No camera found.";
+                }
+            }).catch(function (e) {
+                console.error(e);
+                document.getElementById("scan-result").textContent = "Error accessing camera.";
+            });
         }
 
-        function scanQR() {
-            if (!scanning) return;
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-            let code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
-
-            if (code) {
-                scanning = false;
-                document.getElementById('scan-result').textContent = "Scan Successful";
-            } else {
-                requestAnimationFrame(scanQR);
-            }
-        }
-
-        document.getElementById('restart-scanner').addEventListener('click', function () {
-            scanning = true;
-            startScanner();
+        // Handle QR scan event
+        scanner.addListener('scan', function (data) {
+            document.getElementById('scan-result').textContent = "Scan Successful: " + data;
+            alert("✅ Scan Successful: " + data); // Pop-up alert when scanned
         });
 
-        startScanner();
+        // Request camera permission and start scanner
+        function requestCameraPermission() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function (stream) {
+                    document.getElementById("scan-result").textContent = "Camera access granted. Initializing...";
+                    setTimeout(startScanner, 2000); // Start scanner after 2 sec
+                })
+                .catch(function (error) {
+                    console.error("Camera permission denied:", error);
+                    document.getElementById("scan-result").textContent = "Camera permission denied.";
+                    alert("Please allow camera access to scan QR codes.");
+                });
+        }
+
+        // Start scanning automatically
+        requestCameraPermission();
+
+        // Restart scanner when button is clicked
+        document.getElementById('restart-scanner').addEventListener('click', function () {
+            requestCameraPermission();
+        });
     </script>
 </body>
 </html>
